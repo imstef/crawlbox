@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import sys
+import os
 import os.path
-import threading
-from queue import Queue
-from src.api import Api
+from src.api import CB_Api
 from src.modules import LinkFinder
-from src.modules import Spider
+from src.modules import CB_Spider
 from src.api import TermColor
+from src.modules import CB_Threaded_Spider
 
 # Global vars
 global REPO_PATH
@@ -25,11 +25,8 @@ if not os.path.isfile(CONFIG_FILE_NAME) :
 	sys.exit()
 else :
 	# Instantiate base module objects so we can accses methods
-	#linkFinder = LinkFinder.LinkFinder()
-	api = Api.Api()
+	api = CB_Api.CB_Api()
 	termc = TermColor.TermColor()
-	#print(api.getDomainName('https://test.healthfella.co.uk/index.php'))
-	#linkFinder.feed('<a href="ddsadsadsa">Test<div><div><div></a>')
 
 	# Get user session vars
 	userSettings = api.getUserSettings()
@@ -38,13 +35,15 @@ else :
 	REPO_PATH = userSettings['repoPath']
 	REPO_NAME = userSettings['repoName']
 	NUMBER_OF_THREADS = 4
+	ACTIVE_PROJECT = 'healthfella'
 
-	print (termc.HEADER + 'some text' + termc.ENDC)
+	#print (termc.HEADER + 'some text' + termc.ENDC)
+	#print(str(len(api.fileToSet(REPO_PATH + REPO_NAME + '/' + 'healthfella/crawled.txt'))))
 
 # Basic top level param logic
 if len(sys.argv[1:]) > 0 :
 	arg1 = sys.argv[1:][0]
-	topLevelCommands = ['--version', '--greeting', '--license', 'init', 'create', 'crawl']
+	topLevelCommands = ['--version', '--greeting', '--license', 'init', 'create', 'crawl', 'flush', 'list']
 
 	# Starting point of the program which loads different aspects of the functionality depending on the commands that are passed
 	if not arg1 in topLevelCommands :
@@ -97,6 +96,37 @@ if len(sys.argv[1:]) > 0 :
 
 	# Start a crawl process
 	if arg1 in topLevelCommands and arg1 == 'crawl' :
-		# The thread queue
-		threadQueue = Queue()
-		spider = Spider.Spider('healthfella', 'https://healthfella.com/', api.getDomainName('https://healthfella.com/'), REPO_PATH, REPO_NAME)
+		localParams = ['-r']
+
+		if (len(sys.argv[1:]) == 1) :
+			# The first spider
+			print('regular search')
+			spider = CB_Spider.CB_Spider('healthfella', 'https://healthfella.com/', api.getDomainName('https://healthfella.com/'), REPO_PATH, REPO_NAME, 0)
+			spider.crawl('Spider 1', spider.baseURL)
+
+		elif (len(sys.argv[1:]) == 2) :
+			arg2 = sys.argv[1:][1]
+
+			if arg2 in localParams :
+				print('Initiating recursive search...')
+				path = REPO_PATH + REPO_NAME
+				threadedSpider = CB_Threaded_Spider.CB_Threaded_Spider(REPO_NAME, REPO_PATH)
+				threadedSpider.createWorkers()
+				threadedSpider.crawl(path)
+			else :
+				print('Invalid args supplied.')
+
+	if arg1 in topLevelCommands and arg1 == 'flush' :
+		if (len(sys.argv[1:]) == 2) :
+			arg2 = sys.argv[1:][1]
+			api.flushDataFiles(REPO_PATH, REPO_NAME, arg2)
+		else :
+			print('Invalid args')
+
+	if arg1 in topLevelCommands and arg1 == 'list' :
+		names = os.listdir(REPO_PATH + REPO_NAME)
+		for i in names :
+			if (i == ACTIVE_PROJECT) :
+				print(i + '*')
+			else :
+				print(i)
