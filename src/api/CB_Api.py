@@ -1,7 +1,9 @@
 import os
 from urllib.parse import urlparse
+from src.modules import CB_Spider
+import threading
 
-class Api :
+class CB_Api :
 
 	# Make a dictionary of name=value pairs from the hidden config file
 	def getUserSettings(self) :
@@ -85,8 +87,7 @@ class Api :
 
 	# Delete the contents of a file
 	def deleteFileContents(self, path) :
-		with open(path, 'w'):
-			pass # do nothing
+		open(path, 'w').close()
 
 	# Read a file and convert each line to set items
 	def fileToSet(self, fileName) :
@@ -123,3 +124,13 @@ class Api :
 				return res[-3] + '.' + res[-2] + '.' + res[-1]
 		except:
 			return ''
+
+	# Flush project and set files to initial state
+	def flushDataFiles(self, repoPath, repoName, projectName) :
+		projectPath = repoPath + repoName + '/' + projectName
+		self.deleteFileContents(projectPath + '/queue.txt')
+		self.deleteFileContents(projectPath + '/crawled.txt')
+
+		# Initial state
+		self.appendToFile(projectPath + '/queue.txt', 'https://healthfella.com')
+		print('Flushing ' + projectName + ', at: ' + projectPath)
