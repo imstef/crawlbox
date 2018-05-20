@@ -102,7 +102,7 @@ class CB_Api :
 					# Append an active project to the config file
 					# Save custom path in a static .txt file
 					file = open('/var/www/crawlbox/.cboxrc', 'w')
-					file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'activeProject=' + projectName + '\n' + 'activeURL=' + baseURL)
+					file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'activeProject=' + projectName + '\n' + 'activeURL=' + baseURL + '\n' + 'numThreads=none')
 					file.close()
 					print('Active project set to: ' + projectName)
 		else :
@@ -210,7 +210,7 @@ class CB_Api :
 			print('Removing the active project. Update config file')
 			# Save custom path in a static .txt file
 			file = open('/var/www/crawlbox/.cboxrc', 'w')
-			file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'activeProject=none' + '\n' + 'activeURL=none')
+			file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'activeProject=none' + '\n' + 'activeURL=none' + '\n' + 'numThreads=none')
 			file.close()
 
 		if os.path.exists(path) :

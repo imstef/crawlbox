@@ -12,20 +12,22 @@ class CB_ThreadedWorker :
 	baseURL = ''
 	domainName = ''
 	spider = ''
+	threadsNum = 0
 
-	def __init__(self, jobType, projectName, baseURL, domainName, repoPath, repoName, reportType) :
+	def __init__(self, jobType, threadsNum, projectName, baseURL, domainName, repoPath, repoName, reportType) :
 		CB_ThreadedWorker.queue = Queue()
 		CB_ThreadedWorker.api = CB_Api.CB_Api()
 		CB_ThreadedWorker.repoName = repoName
 		CB_ThreadedWorker.repoPath = repoPath
 		CB_ThreadedWorker.baseURL = baseURL
+		CB_ThreadedWorker.threadsNum = threadsNum
 		CB_ThreadedWorker.projectName = projectName
 		CB_ThreadedWorker.spider = CB_Worker.CB_Worker(jobType, projectName, baseURL, CB_ThreadedWorker.api.getDomainName(baseURL), repoPath, repoName, reportType)
 
 	# Create worker threads (will die when main exits)
 	@staticmethod
 	def createWorkers() :
-		for _ in range(4):
+		for _ in range(threadsNum):
 			t = threading.Thread(target=CB_ThreadedWorker.work)
 			t.daemon = True
 			t.start()

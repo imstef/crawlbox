@@ -30,7 +30,11 @@ if not os.path.isfile(CONFIG_FILE_PATH) :
 else :
 	# Get user session vars
 	userSettings = api.getUserSettings()
-	NUMBER_OF_THREADS = 4
+
+	if 'numThreads' in userSettings :
+		NUMBER_OF_THREADS = userSettings['numThreads']
+	else :
+		NUMBER_OF_THREADS = 2
 
 	#print(userSettings)
 	if 'repoPath' in userSettings :
@@ -60,7 +64,7 @@ else :
 if len(sys.argv[1:]) > 0 :
 	args = sys.argv[1:]
 	arg1 = sys.argv[1:][0]
-	topLevelCommands = ['--version', '--greeting', '--license', '--config', 'init', 'create', 'scrape', 'flush', 'list', 'make', 'status', 'remove', 'count']
+	topLevelCommands = ['--version', '--greeting', '--license', '--config', 'init', 'create', 'scrape', 'flush', 'list', 'set', 'status', 'remove', 'report']
 
 	# Starting point of the program which loads different aspects of the functionality depending on the commands that are passed
 	if not arg1 in topLevelCommands :
@@ -122,24 +126,27 @@ if len(sys.argv[1:]) > 0 :
 
 	# Start a crawl process
 	if arg1 in topLevelCommands and arg1 == 'scrape' :
-		localParams = ['links', 'emails', '-r']
+		localParams = ['-r', '--force']
 
-		if (len(args) == 2) :
-			if args[1] in localParams and args[1] == 'links' :
-				# Crawl for the active project
-				spider = CB_Worker.CB_Worker('', ACTIVE_PROJECT, ACTIVE_PROJECT_URL, api.getDomainName(ACTIVE_PROJECT_URL), REPO_PATH, REPO_NAME, 2)
-				spider.crawl('Spider 1', spider.baseURL)
-		elif len(args) == 3 :
+		if (len(args) == 1) :
+			# Crawl for the active project
+			spider = CB_Worker.CB_Worker('', ACTIVE_PROJECT, ACTIVE_PROJECT_URL, api.getDomainName(ACTIVE_PROJECT_URL), REPO_PATH, REPO_NAME, 2)
+			spider.crawl('Spider 1', spider.baseURL)
+		elif len(args) == 2 :
 			# Crawl recursively for the active project
 			arg2 = args[1]
-			arg3 = args[2]
-
-			if arg2 in localParams and arg2 == 'links' and arg3 in localParams and arg3 == '-r':
+			path = REPO_PATH + REPO_NAME
+			if arg2 in localParams and arg2 == '-r' :
 				#print('Initiating recursive search...')
-				path = REPO_PATH + REPO_NAME
-				threadedSpider = CB_ThreadedWorker.CB_ThreadedWorker('r', ACTIVE_PROJECT, ACTIVE_PROJECT_URL, api.getDomainName(ACTIVE_PROJECT_URL), REPO_PATH, REPO_NAME, 2)
+				threadedSpider = CB_ThreadedWorker.CB_ThreadedWorker('r', NUMBER_OF_THREADS, ACTIVE_PROJECT, ACTIVE_PROJECT_URL, api.getDomainName(ACTIVE_PROJECT_URL), REPO_PATH, REPO_NAME, 2)
 				threadedSpider.createWorkers()
 				threadedSpider.crawl(path)
+			elif arg2 in localParams and arg2 == '--force' :
+				api.flushDataFiles(REPO_PATH, REPO_NAME, ACTIVE_PROJECT, ACTIVE_PROJECT_URL)
+				spider = CB_Worker.CB_Worker('', ACTIVE_PROJECT, ACTIVE_PROJECT_URL, api.getDomainName(ACTIVE_PROJECT_URL), REPO_PATH, REPO_NAME, 2)
+				spider.crawl('Spider 1', spider.baseURL)
+			else :
+				print(termc.FAIL + 'Invalid arguments supplied. Please check "cbox --help scrape" for further instructions.' + termc.ENDC)
 		elif len(args) == 4 :
 			projectName = args[1]
 			projectURL = args[2]
@@ -179,22 +186,33 @@ if len(sys.argv[1:]) > 0 :
 			else :
 				print(i)
 
-	if arg1 in topLevelCommands and arg1 == 'make' :
-		localParams = ['active']
-		path = REPO_PATH + REPO_NAME + '/' + args[2]
+	if arg1 in topLevelCommands and arg1 == 'set' :
+		localParams = ['active', 'threads']
+		if args[1] in localParams and args[1] == 'active' :
+			path = REPO_PATH + REPO_NAME + '/' + args[2]
+			if os.path.exists(path) :
+				# Get the URL from queue.txt
+				with open(path + '/queue.txt', 'r') as file :
+					baseURL = file.read()
 
-		if os.path.exists(path) :
-			# Get the URL from queue.txt
-			with open(path + '/queue.txt', 'r') as file :
-				baseURL = file.read()
-
-			if not userSettings['activeProject'] == args[2] :
-				api.setActiveProject(CONFIG_FILE_PATH, args[2], baseURL)
-				print('Actie project set to ' + termc.OKBLUE + args[2] + termc.ENDC)
+				if not userSettings['activeProject'] == args[2] :
+					api.setActiveProject(CONFIG_FILE_PATH, args[2], baseURL)
+					print('Actie project set to ' + termc.OKBLUE + args[2] + termc.ENDC)
+				else :
+					print(termc.FAIL + args[2] + ' already active.' + termc.ENDC)
 			else :
-				print(termc.FAIL + args[2] + ' already active.' + termc.ENDC)
-		else :
-			print('Invalid project name!')
+				print('Invalid project name!')
+		elif args[1] in localParams and args[1] == 'threads' :
+				with open(CONFIG_FILE_PATH, 'r') as file :
+					fileData = file.read()
+
+				# Update active project
+				newdata = fileData.replace(userSettings['numThreads'], args[2])
+
+				with open(CONFIG_FILE_PATH, 'w') as file :
+					file.write(newdata)
+
+				print(termc.OKGREEN + 'Config file updated.' + termc.ENDC)
 
 	if arg1 in topLevelCommands and arg1 == 'status' :
 		if not ACTIVE_PROJECT or not ACTIVE_PROJECT_URL :
@@ -202,7 +220,7 @@ if len(sys.argv[1:]) > 0 :
 		else :
 			print('Active project: ' + termc.OKBLUE + userSettings['activeProject'] + termc.ENDC + ' (' + userSettings['repoName'] + ', ' + userSettings['activeURL'] + ')')
 
-	if arg1 in topLevelCommands and arg1 == 'count' :
+	if arg1 in topLevelCommands and arg1 == 'report' :
 		if len(args) == 1 :
 			path = REPO_PATH + REPO_NAME + '/' + ACTIVE_PROJECT
 			queue = api.fileToSet(path + '/queue.txt')
@@ -216,7 +234,7 @@ if len(sys.argv[1:]) > 0 :
 			print('Scripts found: ' + str(len(scripts)))
 			print('Meta info found: ' + str(len(meta)))
 			print('Styles found: ' + str(len(styles)))
-			
+
 		elif len(args) == 2 :
 			path = REPO_PATH + REPO_NAME + '/' + args[1]
 			queue = api.fileToSet(path + '/queue.txt')
@@ -239,6 +257,7 @@ if len(sys.argv[1:]) > 0 :
 			print('Scripts found: ' + str(len(scripts)))
 			print('Meta info found: ' + str(len(meta)))
 			print('Styles found: ' + str(len(styles)))
+
 	if arg1 in topLevelCommands and arg1 == 'remove' :
 		if len(args) == 1 :
 			api.removeProject(REPO_PATH, REPO_NAME, ACTIVE_PROJECT)

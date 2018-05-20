@@ -3,6 +3,7 @@ from src.modules import CB_Parser
 from queue import Queue
 from src.api import CB_Api
 from src.api import CB_TermColor
+import time
 import sys
 
 class CB_Worker :
@@ -51,6 +52,7 @@ class CB_Worker :
 	def crawl(threadName, pageURL) :
 		# Check if you already crawled the page
 		if pageURL not in CB_Worker.crawledSet :
+			processStart = time.time()
 			if CB_Worker.reportType == 0 :
 				sys.stdout.write(CB_Worker.termColor.HEADER + "Overall Progress " + CB_Worker.termColor.ENDC + "(Queue/Crawled): %d / %d \r" % (int(len(CB_Worker.queueSet)), int(len(CB_Worker.crawledSet))))
 				sys.stdout.flush()
@@ -63,31 +65,29 @@ class CB_Worker :
 				# print(crawlStatus)
 			
 			CB_Worker.addLinksToQueue(CB_Worker.seek(pageURL))
-
+			
 			# Remove from the waiting list and put it in crawled file
 			if not len(CB_Worker.queueSet) == 1 :
 				CB_Worker.queueSet.remove(pageURL)
 				CB_Worker.crawledSet.add(pageURL)
 
-				if CB_Worker.reportType == 2 :
-					print('URL ' + pageURL + ' crawled')
-					#print(CB_Worker.emails)
-					print('Links (queued/crawled): ' + str(len(CB_Worker.queueSet)) + ' / ' + str(len(CB_Worker.crawledSet)))
-
 				# Update the acual files that hold the data so all threads have the most updated info
 				CB_Worker.updateDataFiles()
+				processEnd = time.time()
+
+				if CB_Worker.reportType == 2 :
+					print(CB_Worker.termColor.HEADER +'[URL] ' + CB_Worker.termColor.ENDC + pageURL + CB_Worker.termColor.OKGREEN + ' crawled (' + str(round(processEnd - processStart, 2)) + ' seconds).' + CB_Worker.termColor.ENDC)
+					#print(CB_Worker.emails)
 			else :
 				CB_Worker.queueSet.remove(pageURL)
 				CB_Worker.crawledSet.add(pageURL)
-
-				if CB_Worker.reportType == 2 :
-					print(pageURL + ' crawled')
-
+				processEnd = time.time()
 				# Update the acual files that hold the data so all threads have the most updated info
 				CB_Worker.updateDataFiles()
 
-				#if CB_Worker.reportType == 2 :
-					#print('Crawling for domain finished. Total links crawled: ' + str(len(CB_Worker.crawledSet)))
+				if CB_Worker.reportType == 2 :
+					print(CB_Worker.termColor.HEADER +'[URL] ' + CB_Worker.termColor.ENDC + pageURL + CB_Worker.termColor.OKGREEN + ' crawled (' + str(round(processEnd - processStart, 2)) + ' seconds).' + CB_Worker.termColor.ENDC)
+					print('Links (queued/crawled): ' + str(len(CB_Worker.queueSet)) + ' / ' + str(len(CB_Worker.crawledSet)))
 		else :
 			print('Page url already crawled!')
 
@@ -103,8 +103,8 @@ class CB_Worker :
 
 			# Make sure we're connecting to a web page
 			if 'text/html' in res.getheader('Content-Type') :
-				if CB_Worker.reportType == 2 :
-					print('Carwling ' + pageURL)
+				#if CB_Worker.reportType == 2 :
+					#print('Carwling ' + pageURL)
 
 				htmlBytes = res.read()
 				htmlString = htmlBytes.decode('utf-8')
