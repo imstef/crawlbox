@@ -1,16 +1,17 @@
 import os
 from urllib.parse import urlparse
-from src.modules import CB_Spider
+from src.modules import CB_Worker
 import threading
+import shutil
 
 class CB_Api :
-
+		
 	# Make a dictionary of name=value pairs from the hidden config file
 	def getUserSettings(self) :
 		userSettings = {}
 
-		with open('/var/www/crawlbox/.cboxlocal') as myfile :
-			for line in myfile :
+		with open('/var/www/crawlbox/.cboxrc') as f :
+			for line in f :
 				name, var = line.partition('=')[::2]
 				userSettings[name.strip()] = var.strip('\n\t') # strip new lines and tabs from the file
 
@@ -33,8 +34,8 @@ class CB_Api :
 				print('Creating custom path project dir ' + name)
 
 				# Save custom path in a static .txt file
-				file = open('.cboxlocal', 'w')
-				file.write('repoPath=' + path + '\n' + 'repoName=' + name)
+				file = open('/var/www/crawlbox/.cboxrc', 'w')
+				file.write('repoPath=' + path + '\n' + 'repoName=' + name + '\n')
 				file.close()
 				os.makedirs(path + '/' + name)
 		else :
@@ -42,13 +43,34 @@ class CB_Api :
 
 	def createDataFiles(self, projectName, baseURL, path) :
 		# Get user settings so we know where to create the files
-		if os.path.isfile('/var/www/crawlbox/.cboxlocal') :
+		if os.path.isfile('/var/www/crawlbox/.cboxrc') :
 			queueDataPath = path + '/queue.txt'
 			crawlDataPath = path + '/crawled.txt'
+			scriptsDataPath = path + '/scripts.txt'
+			metaDataPath = path + '/meta.txt'
+			stylesDataPath = path + '/styles.txt'
 
 			if not os.path.isfile(queueDataPath) :
 				self.writeFile(queueDataPath, baseURL)
 				print('Queue data file created...')
+			else :
+				print('File already exists')
+
+			if not os.path.isfile(scriptsDataPath) :
+				self.writeFile(scriptsDataPath, '')
+				print('Scripts data file created...')
+			else :
+				print('File already exists')
+
+			if not os.path.isfile(metaDataPath) :
+				self.writeFile(metaDataPath, '')
+				print('Meta data file created...')
+			else :
+				print('File already exists')
+
+			if not os.path.isfile(stylesDataPath) :
+				self.writeFile(stylesDataPath, '')
+				print('Meta data file created...')
 			else :
 				print('File already exists')
 
@@ -61,13 +83,28 @@ class CB_Api :
 			print("\033[93m Config file not found.\033[0m")
 
 
-	def createProject(self, projectName, baseURL, repoPath, repoName) :
+	def createProject(self, projectName, baseURL, repoPath, repoName, configFile, active=False) :
 		projectPath = repoPath + repoName + '/' + projectName
 
 		if not os.path.exists(projectPath) :
 			os.makedirs(projectPath)
 			print('New project named' + projectName + ' created under the ' + repoName + ' repository, at the following location: ' + repoPath + repoName)
 			self.createDataFiles(projectName, baseURL, projectPath)
+
+			if active :
+				# Chech to see if there is an active project
+				userSettings = self.getUserSettings()
+				#prj = userSettings['activeProject']
+				if 'activeProject' in userSettings and userSettings['activeProject'] != 'none' :
+					self.setActiveProject(configFile, projectName, baseURL)
+					print('Active project changed to: ' + projectName)
+				else :
+					# Append an active project to the config file
+					# Save custom path in a static .txt file
+					file = open('/var/www/crawlbox/.cboxrc', 'w')
+					file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'activeProject=' + projectName + '\n' + 'activeURL=' + baseURL)
+					file.close()
+					print('Active project set to: ' + projectName)
 		else :
 			print('\033[91m Project already exists. \033[0m')
 
@@ -76,6 +113,32 @@ class CB_Api :
 		file = open(path, 'w+')
 		file.write(data)
 		file.close()
+
+	def setActiveProject(self, path, projectName, projectURL) :
+		userSettings = self.getUserSettings()
+		
+		with open(path, 'r') as file :
+			fileData = file.read()
+
+		# Update active project
+		newdata = fileData.replace(userSettings['activeProject'], projectName)
+
+		with open(path, 'w') as file :
+			file.write(newdata)
+
+		# Update active project url
+		with open(path, 'r') as file :
+			fileData = file.read()
+
+		# Replace
+		newdata = fileData.replace(userSettings['activeURL'], projectURL)
+
+		with open(path, 'w') as file :
+			file.write(newdata)
+
+	def getActiveProject() :
+		userSettings = self.getUserSettings()
+		return userSettings['activeProject']
 
 	def greet() :
 		print('Welcome to crawlbox!')
@@ -126,11 +189,37 @@ class CB_Api :
 			return ''
 
 	# Flush project and set files to initial state
-	def flushDataFiles(self, repoPath, repoName, projectName) :
+	def flushDataFiles(self, repoPath, repoName, projectName, projectURL) :
 		projectPath = repoPath + repoName + '/' + projectName
 		self.deleteFileContents(projectPath + '/queue.txt')
 		self.deleteFileContents(projectPath + '/crawled.txt')
+		self.deleteFileContents(projectPath + '/scripts.txt')
+		self.deleteFileContents(projectPath + '/meta.txt')
+		self.deleteFileContents(projectPath + '/styles.txt')
 
-		# Initial state
-		self.appendToFile(projectPath + '/queue.txt', 'https://healthfella.com')
+		# Reset to initial state
+		self.appendToFile(projectPath + '/queue.txt', projectURL)
 		print('Flushing ' + projectName + ', at: ' + projectPath)
+
+	def removeProject(self, repoPath, repoName, projectName) :
+		userSettings = self.getUserSettings()
+		path = repoPath + repoName + '/' + projectName
+
+		# Check if it is the active project, recreate the config file
+		if userSettings['activeProject'] == projectName :
+			print('Removing the active project. Update config file')
+			# Save custom path in a static .txt file
+			file = open('/var/www/crawlbox/.cboxrc', 'w')
+			file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'activeProject=none' + '\n' + 'activeURL=none')
+			file.close()
+
+		if os.path.exists(path) :
+			shutil.rmtree(path)
+			print(projectName + ' permanently removed.')
+
+	def regenConfigFile(self) :
+		print('Regen config')
+
+	def getUserConfig(self) :
+		userSettings = self.getUserSettings()
+		print(userSettings)
