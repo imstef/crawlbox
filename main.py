@@ -32,27 +32,27 @@ else :
 	userSettings = api.getUserSettings()
 
 	if 'numThreads' in userSettings :
-		NUMBER_OF_THREADS = userSettings['numThreads']
+		NUMBER_OF_THREADS = int(userSettings['numThreads'])
 	else :
 		NUMBER_OF_THREADS = 2
 
 	#print(userSettings)
 	if 'repoPath' in userSettings :
-		REPO_PATH = userSettings['repoPath']
+		REPO_PATH = userSettings['repoPath'].replace('"', '')
 	else :
 		REPO_PATH = ''
 
 	if 'repoName' in userSettings :
-		REPO_NAME = userSettings['repoName']
+		REPO_NAME = userSettings['repoName'].replace('"', '')
 	else :
 		REPO_NAME = ''
 	
 	if 'activeProject' in userSettings :
-		ACTIVE_PROJECT = userSettings['activeProject']
+		ACTIVE_PROJECT = userSettings['activeProject'].replace('"', '')
 	else :
 		ACTIVE_PROJECT = ''
 	if 'activeURL' in userSettings :
-		ACTIVE_PROJECT_URL = userSettings['activeURL']
+		ACTIVE_PROJECT_URL = userSettings['activeURL'].replace('"', '')
 	else :
 		ACTIVE_PROJECT_URL = ''
 
@@ -190,13 +190,15 @@ if len(sys.argv[1:]) > 0 :
 		localParams = ['active', 'threads']
 		if args[1] in localParams and args[1] == 'active' :
 			path = REPO_PATH + REPO_NAME + '/' + args[2]
+
 			if os.path.exists(path) :
 				# Get the URL from queue.txt
 				with open(path + '/queue.txt', 'r') as file :
-					baseURL = file.read()
+					baseURL = [line.rstrip() for line in file]
 
 				if not userSettings['activeProject'] == args[2] :
-					api.setActiveProject(CONFIG_FILE_PATH, args[2], baseURL)
+					print('URL project: ' + baseURL[0])
+					api.setActiveProject(CONFIG_FILE_PATH, args[2], baseURL[0])
 					print('Actie project set to ' + termc.OKBLUE + args[2] + termc.ENDC)
 				else :
 					print(termc.FAIL + args[2] + ' already active.' + termc.ENDC)
@@ -259,7 +261,17 @@ if len(sys.argv[1:]) > 0 :
 			print('Styles found: ' + str(len(styles)))
 
 	if arg1 in topLevelCommands and arg1 == 'remove' :
-		if len(args) == 1 :
-			api.removeProject(REPO_PATH, REPO_NAME, ACTIVE_PROJECT)
-		elif len(args) == 2 :
-			api.removeProject(REPO_PATH, REPO_NAME, args[1])
+		localParams = ['project', 'repo']
+
+		if len(args) == 2 :
+			if args[1] in localParams and args[1] == 'project' :
+				api.removeProject(REPO_PATH, REPO_NAME, ACTIVE_PROJECT)
+			if args[1] in localParams and args[1] == 'repo' :
+				api.removeRepo(REPO_PATH, REPO_NAME, CONFIG_FILE_PATH)
+		elif len(args) == 3 :
+			if args[1] in localParams and args[1] == 'project' :
+				api.removeProject(REPO_PATH, REPO_NAME, args[2])
+			if args[1] in localParams and args[1] == 'repo' :
+				api.removeRepo(REPO_PATH, REPO_NAME, CONFIG_FILE_PATH)
+		else :
+			print('Invalid args supplied.')

@@ -18,7 +18,7 @@ class CB_Api :
 		return userSettings
 
 	# Setup a folder for a specific site
-	def createRepo(self, name = '', path = '') :
+	def createRepo(self, name = '', path = '', numThreads = 0) :
 		if not os.path.exists(path + '/' + name) :
 			# Default no args
 			if name == '' and path == '' :
@@ -35,7 +35,7 @@ class CB_Api :
 
 				# Save custom path in a static .txt file
 				file = open('/var/www/crawlbox/.cboxrc', 'w')
-				file.write('repoPath=' + path + '\n' + 'repoName=' + name + '\n')
+				file.write('repoPath=' + path + '\n' + 'repoName=' + name + '\n' + 'numThreads=' + str(numThreads))
 				file.close()
 				os.makedirs(path + '/' + name)
 		else :
@@ -102,7 +102,7 @@ class CB_Api :
 					# Append an active project to the config file
 					# Save custom path in a static .txt file
 					file = open('/var/www/crawlbox/.cboxrc', 'w')
-					file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'activeProject=' + projectName + '\n' + 'activeURL=' + baseURL + '\n' + 'numThreads=none')
+					file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'numThreads=' + userSettings['numThreads'] + '\n' + 'activeProject="' + projectName + '"\n' + 'activeURL="' + baseURL + '"')
 					file.close()
 					print('Active project set to: ' + projectName)
 		else :
@@ -121,7 +121,7 @@ class CB_Api :
 			fileData = file.read()
 
 		# Update active project
-		newdata = fileData.replace(userSettings['activeProject'], projectName)
+		newdata = fileData.replace(userSettings['activeProject'], '"' + projectName + '"')
 
 		with open(path, 'w') as file :
 			file.write(newdata)
@@ -131,7 +131,7 @@ class CB_Api :
 			fileData = file.read()
 
 		# Replace
-		newdata = fileData.replace(userSettings['activeURL'], projectURL)
+		newdata = fileData.replace(userSettings['activeURL'], '"' + projectURL + '"')
 
 		with open(path, 'w') as file :
 			file.write(newdata)
@@ -210,13 +210,24 @@ class CB_Api :
 			print('Removing the active project. Update config file')
 			# Save custom path in a static .txt file
 			file = open('/var/www/crawlbox/.cboxrc', 'w')
-			file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'activeProject=none' + '\n' + 'activeURL=none' + '\n' + 'numThreads=none')
+			file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'numThreads=' + userSettings['numThreads'] + '\n' + 'activeProject=none' + '\n' + 'activeURL=none')
 			file.close()
 
 		if os.path.exists(path) :
 			shutil.rmtree(path)
 			print(projectName + ' permanently removed.')
 
+	def removeRepo(self, repoPath, repoName, configFile) :
+		print('Removing the active repository')
+		path = repoPath + repoName
+
+		if os.path.exists(path) :
+			shutil.rmtree(path)
+			print(repoName + ' permanently removed.')
+
+		# Remove config file
+		self.deleteFileContents(configFile)
+		print('Removed repo config')
 	def regenConfigFile(self) :
 		print('Regen config')
 

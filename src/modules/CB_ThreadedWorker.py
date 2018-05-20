@@ -27,7 +27,7 @@ class CB_ThreadedWorker :
 	# Create worker threads (will die when main exits)
 	@staticmethod
 	def createWorkers() :
-		for _ in range(threadsNum):
+		for _ in range(CB_ThreadedWorker.threadsNum):
 			t = threading.Thread(target=CB_ThreadedWorker.work)
 			t.daemon = True
 			t.start()
