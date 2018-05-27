@@ -72,10 +72,10 @@ class CB_Parser(HTMLParser) :
 			self.emails.add(data)
 
 		# Find google adsense/analytics code
-		# scriptRegex = re.compile('ca-pub')
-		# if scriptRegex.search(data) :
-		# 	print(data)
-		# 	self.scripts.add(data)
+		scriptRegex = re.compile('ca-pub')
+		if scriptRegex.search(data) :
+			print(data)
+			#self.scripts.add(data)
 	def getPageLinks(self) :
 		#print(self.links)
 		return self.links

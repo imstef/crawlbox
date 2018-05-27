@@ -121,10 +121,13 @@ class CB_Worker :
 			CB_Worker.scriptsSet = finder.getPageScripts()
 			CB_Worker.metaSet = finder.getPageMeta()
 			CB_Worker.stylesSet = finder.getPageStylesheets()
+			CB_Worker.emails = finder.getPageEmails()
 
 			print('Scripts: ' + str(len(CB_Worker.scriptsSet)))
 			print('Meta: ' + str(len(CB_Worker.metaSet)))
 			print('Styles: ' + str(len(CB_Worker.stylesSet)))
+			print('Emails: ' + str(len(CB_Worker.emails)))
+			print(CB_Worker.emails)
 			#print(CB_Worker.metaSet)
 			#print(CB_Worker.stylesSet)
 

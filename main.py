@@ -25,7 +25,8 @@ termc = CB_TermColor.CB_TermColor()
 
 # Check if all config files are here
 if not os.path.isfile(CONFIG_FILE_PATH) :
-	print('Config file not found, cannot load user settings. Please cbox init a new working directory.')
+	print(termc.WARNING + 'Crawlbox 0.1' + termc.ENDC)
+	print('Config file not found, cannot load user settings. Please "' + termc.OKBLUE + 'cbox init' + termc.ENDC + '" a new working directory.')
 	#sys.exit()
 else :
 	# Get user session vars
