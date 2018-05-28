@@ -32,27 +32,28 @@ else :
 	# Get user session vars
 	userSettings = api.getUserSettings()
 
-	if 'numThreads' in userSettings :
+	if 'numThreads' in userSettings and userSettings['numThreads'] != 'none' :
 		NUMBER_OF_THREADS = int(userSettings['numThreads'])
 	else :
 		NUMBER_OF_THREADS = 2
 
 	#print(userSettings)
-	if 'repoPath' in userSettings :
+	if 'repoPath' in userSettings and userSettings['repoPath'] != 'none' :
 		REPO_PATH = userSettings['repoPath'].replace('"', '')
 	else :
 		REPO_PATH = ''
 
-	if 'repoName' in userSettings :
+	if 'repoName' in userSettings and userSettings['repoName'] != 'none' :
 		REPO_NAME = userSettings['repoName'].replace('"', '')
 	else :
 		REPO_NAME = ''
 	
-	if 'activeProject' in userSettings :
+	if 'activeProject' in userSettings and userSettings['activeProject'] != '"none"' :
 		ACTIVE_PROJECT = userSettings['activeProject'].replace('"', '')
 	else :
 		ACTIVE_PROJECT = ''
-	if 'activeURL' in userSettings :
+
+	if 'activeURL' in userSettings and userSettings['activeURL'] != 'none' :
 		ACTIVE_PROJECT_URL = userSettings['activeURL'].replace('"', '')
 	else :
 		ACTIVE_PROJECT_URL = ''
@@ -191,18 +192,17 @@ if len(sys.argv[1:]) > 0 :
 		localParams = ['active', 'threads']
 		if args[1] in localParams and args[1] == 'active' :
 			path = REPO_PATH + REPO_NAME + '/' + args[2]
-
+			#print(path)
 			if os.path.exists(path) :
 				# Get the URL from queue.txt
 				with open(path + '/queue.txt', 'r') as file :
 					baseURL = [line.rstrip() for line in file]
 
-				if not userSettings['activeProject'] == args[2] :
+				if not ACTIVE_PROJECT == args[2] :
 					print('URL project: ' + baseURL[0])
-					api.setActiveProject(CONFIG_FILE_PATH, args[2], baseURL[0])
-					print('Actie project set to ' + termc.OKBLUE + args[2] + termc.ENDC)
+					api.setActiveProject(CONFIG_FILE_PATH, REPO_PATH, REPO_NAME, args[2], baseURL[0])
 				else :
-					print(termc.FAIL + args[2] + ' already active.' + termc.ENDC)
+					print(termc.FAIL + 'The project "' + args[2] + '" is already active.' + termc.ENDC)
 			else :
 				print('Invalid project name!')
 		elif args[1] in localParams and args[1] == 'threads' :
@@ -225,41 +225,55 @@ if len(sys.argv[1:]) > 0 :
 
 	if arg1 in topLevelCommands and arg1 == 'report' :
 		if len(args) == 1 :
-			path = REPO_PATH + REPO_NAME + '/' + ACTIVE_PROJECT
-			queue = api.fileToSet(path + '/queue.txt')
-			crawled = api.fileToSet(path + '/crawled.txt')
-			scripts = api.fileToSet(path + '/scripts.txt')
-			meta = api.fileToSet(path + '/meta.txt')
-			styles = api.fileToSet(path + '/styles.txt')
+			if not ACTIVE_PROJECT == '' :
+				path = REPO_PATH + REPO_NAME + '/' + ACTIVE_PROJECT
+			else :
+				path = ''
 
-			print('Showing stats for ' + ACTIVE_PROJECT + ' (' + ACTIVE_PROJECT_URL + ')')
-			print('Links Crawled: ' + str(len(crawled)) + ' | Links Queued: ' + str(len(queue)))
-			print('Scripts found: ' + str(len(scripts)))
-			print('Meta info found: ' + str(len(meta)))
-			print('Styles found: ' + str(len(styles)))
+			if os.path.exists(path) :
+				queue = api.fileToSet(path + '/queue.txt')
+				crawled = api.fileToSet(path + '/crawled.txt')
+				scripts = api.fileToSet(path + '/scripts.txt')
+				meta = api.fileToSet(path + '/meta.txt')
+				styles = api.fileToSet(path + '/styles.txt')
+
+				print('Showing stats for ' + ACTIVE_PROJECT + ' (' + ACTIVE_PROJECT_URL + ')')
+				print('Links Crawled: ' + str(len(crawled)) + ' | Links Queued: ' + str(len(queue)))
+				print('Scripts found: ' + str(len(scripts)))
+				print('Meta info found: ' + str(len(meta)))
+				print('Styles found: ' + str(len(styles)))
+			else :
+				print(termc.FAIL + 'Active project missing.' + termc.ENDC)
 
 		elif len(args) == 2 :
-			path = REPO_PATH + REPO_NAME + '/' + args[1]
-			queue = api.fileToSet(path + '/queue.txt')
-			crawled = api.fileToSet(path + '/crawled.txt')
-			scripts = api.fileToSet(path + '/scripts.txt')
-			meta = api.fileToSet(path + '/meta.txt')
-			styles = api.fileToSet(path + '/styles.txt')
-
-			if len(queue) == 1 :
-				# Get the URL from queue.txt
-				with open(path + '/queue.txt', 'r') as file :
-					baseURL = [line.rstrip() for line in file]
+			if not ACTIVE_PROJECT == '' :
+				path = REPO_PATH + REPO_NAME + '/' + args[1]
 			else :
-				# Get the URL from queue.txt
-				with open(path + '/crawled.txt', 'r') as file :
-					baseURL = [line.rstrip() for line in file]
+				path = ''
 
-			print('Showing stats for ' + args[1] + ' (' + baseURL[0] + ')')
-			print('Links Crawled: ' + str(len(crawled)) + ' | Links Queued: ' + str(len(queue)))
-			print('Scripts found: ' + str(len(scripts)))
-			print('Meta info found: ' + str(len(meta)))
-			print('Styles found: ' + str(len(styles)))
+			if os.path.exists(path) :
+				queue = api.fileToSet(path + '/queue.txt')
+				crawled = api.fileToSet(path + '/crawled.txt')
+				scripts = api.fileToSet(path + '/scripts.txt')
+				meta = api.fileToSet(path + '/meta.txt')
+				styles = api.fileToSet(path + '/styles.txt')
+
+				if len(queue) == 1 :
+					# Get the URL from queue.txt
+					with open(path + '/queue.txt', 'r') as file :
+						baseURL = [line.rstrip() for line in file]
+				else :
+					# Get the URL from queue.txt
+					with open(path + '/crawled.txt', 'r') as file :
+						baseURL = [line.rstrip() for line in file]
+
+				print('Showing stats for ' + args[1] + ' (' + baseURL[0] + ')')
+				print('Links Crawled: ' + str(len(crawled)) + ' | Links Queued: ' + str(len(queue)))
+				print('Scripts found: ' + str(len(scripts)))
+				print('Meta info found: ' + str(len(meta)))
+				print('Styles found: ' + str(len(styles)))
+			else :
+				print(termc.FAIL + 'Project not found.' + termc.ENDC)
 
 	if arg1 in topLevelCommands and arg1 == 'remove' :
 		localParams = ['project', 'repo']

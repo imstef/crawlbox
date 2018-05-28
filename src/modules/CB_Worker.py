@@ -44,6 +44,9 @@ class CB_Worker :
 		api = CB_Api.CB_Api()
 		CB_Worker.queueSet = api.fileToSet(CB_Worker.queueFile)
 		CB_Worker.crawledSet = api.fileToSet(CB_Worker.crawledFile)
+		# CB_Worker.scriptsSet = set()
+		# CB_Worker.metaSet = set()
+		# CB_Worker.stylesSet = set()
 		CB_Worker.scriptsSet = api.fileToSet(CB_Worker.scriptsFile)
 		CB_Worker.metaSet = api.fileToSet(CB_Worker.metaFile)
 		CB_Worker.stylesSet = api.fileToSet(CB_Worker.stylesFile)
@@ -116,20 +119,39 @@ class CB_Worker :
 			# There were no links so return an empty set
 			return set()
 
-		if CB_Worker.jobType != 'r' :
-			#CB_Worker.emails = finder.getPageEmails()
-			CB_Worker.scriptsSet = finder.getPageScripts()
-			CB_Worker.metaSet = finder.getPageMeta()
-			CB_Worker.stylesSet = finder.getPageStylesheets()
-			CB_Worker.emails = finder.getPageEmails()
+		#if CB_Worker.jobType != 'r' :
+		#CB_Worker.emails = finder.getPageEmails()
+		
+		# CB_Worker.scriptsSet = finder.getPageScripts()
+		# CB_Worker.stylesSet = finder.getPageStylesheets()
+		# CB_Worker.metaSet = finder.getPageMeta()
+		# print('New Scripts: ' + str(len(CB_Worker.scriptsSet)))
+		# print('New Meta: ' + str(len(CB_Worker.metaSet)))
+		# print('New Styles: ' + str(len(CB_Worker.stylesSet)))
 
-			print('Scripts: ' + str(len(CB_Worker.scriptsSet)))
-			print('Meta: ' + str(len(CB_Worker.metaSet)))
-			print('Styles: ' + str(len(CB_Worker.stylesSet)))
-			print('Emails: ' + str(len(CB_Worker.emails)))
-			print(CB_Worker.emails)
-			#print(CB_Worker.metaSet)
-			#print(CB_Worker.stylesSet)
+		#print('Emails: ' + str(len(CB_Worker.emails)))
+		# Append new scripts
+		newScripts = finder.getPageScripts()
+		for i in newScripts :
+			CB_Worker.scriptsSet.add(i)
+
+		# Append new meta info
+		newMeta = finder.getPageMeta()
+		for i in newMeta :
+			CB_Worker.metaSet.add(i)
+
+		# Append new styles
+		newStyles = finder.getPageStylesheets()
+		for i in newStyles :
+			CB_Worker.stylesSet.add(i)
+
+		#CB_Worker.stylesSet = finder.getPageStylesheets()
+		#CB_Worker.emails = finder.getPageEmails()
+		#print(CB_Worker.metaSet)
+		
+		#print(CB_Worker.emails)
+		#print(CB_Worker.metaSet)
+		#print(CB_Worker.stylesSet)
 
 		return finder.getPageLinks()
 
@@ -151,8 +173,8 @@ class CB_Worker :
 	@staticmethod
 	def updateDataFiles() :
 		api = CB_Api.CB_Api()
-		api.setToFile(CB_Worker.queueSet, CB_Worker.queueFile)
-		api.setToFile(CB_Worker.crawledSet, CB_Worker.crawledFile)
-		api.setToFile(CB_Worker.scriptsSet, CB_Worker.scriptsFile)
-		api.setToFile(CB_Worker.metaSet, CB_Worker.metaFile)
-		api.setToFile(CB_Worker.stylesSet, CB_Worker.stylesFile)
+		api.setToFile('clean', CB_Worker.queueSet, CB_Worker.queueFile)
+		api.setToFile('clean', CB_Worker.crawledSet, CB_Worker.crawledFile)
+		api.setToFile('clean', CB_Worker.scriptsSet, CB_Worker.scriptsFile)
+		api.setToFile('clean', CB_Worker.metaSet, CB_Worker.metaFile)
+		api.setToFile('clean', CB_Worker.stylesSet, CB_Worker.stylesFile)

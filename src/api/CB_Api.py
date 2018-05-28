@@ -3,9 +3,14 @@ from urllib.parse import urlparse
 from src.modules import CB_Worker
 import threading
 import shutil
-
+import getpass
+from src.api import CB_TermColor
 class CB_Api :
-		
+	termc = object
+
+	def __init__(self) :
+		self.termc = CB_TermColor.CB_TermColor()
+
 	# Make a dictionary of name=value pairs from the hidden config file
 	def getUserSettings(self) :
 		userSettings = {}
@@ -16,6 +21,13 @@ class CB_Api :
 				userSettings[name.strip()] = var.strip('\n\t') # strip new lines and tabs from the file
 
 		return userSettings
+
+	def updateConfigFile(self, configFile, repoPath, repoName, projectName, projectURL) :
+		userSettings = self.getUserSettings()
+
+		file = open(configFile, 'w')
+		file.write('repoPath="' + repoPath + '"' + '\n' + 'repoName="' + repoName + '"' + '\n' + 'numThreads=' + userSettings['numThreads'] + '\n' + 'activeProject="' + projectName + '"\n' + 'activeURL="' + projectURL + '"')
+		file.close()
 
 	# Setup a folder for a specific site
 	def createRepo(self, name = '', path = '', numThreads = 0) :
@@ -28,14 +40,18 @@ class CB_Api :
 			# No path with a name arg	
 			if path == '' and name != '' :
 				print('Creating project dir ' + name)
-				os.makedirs(name)
+				userName = getpass.getuser()
+				# Save custom path in a static .txt file
+				file = open('/var/www/crawlbox/.cboxrc', 'w')
+				file.write('repoPath="/home/' + userName + '/crawlbox/"' + '\n' + 'repoName="' + name + '"' + '\n' + 'numThreads=' + str(numThreads) + '\n' + 'activeProject="none"' + '\n' + 'activeURL="none"')
+				file.close()
+				os.makedirs('/home/' + userName + '/crawlbox/' + name)
 			else :
 				# Name and path args
 				print('Creating custom path project dir ' + name)
-
 				# Save custom path in a static .txt file
 				file = open('/var/www/crawlbox/.cboxrc', 'w')
-				file.write('repoPath=' + path + '\n' + 'repoName=' + name + '\n' + 'numThreads=' + str(numThreads))
+				file.write('repoPath="' + path + '"' + '\n' + 'repoName="' + name + '"' + '\n' + 'numThreads=' + str(numThreads) + '\n' + 'activeProject="none"' + '\n' + 'activeURL="none"')
 				file.close()
 				os.makedirs(path + '/' + name)
 		else :
@@ -94,17 +110,9 @@ class CB_Api :
 			if active :
 				# Chech to see if there is an active project
 				userSettings = self.getUserSettings()
-				#prj = userSettings['activeProject']
-				if 'activeProject' in userSettings and userSettings['activeProject'] != 'none' :
-					self.setActiveProject(configFile, projectName, baseURL)
-					print('Active project changed to: ' + projectName)
-				else :
-					# Append an active project to the config file
-					# Save custom path in a static .txt file
-					file = open('/var/www/crawlbox/.cboxrc', 'w')
-					file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'numThreads=' + userSettings['numThreads'] + '\n' + 'activeProject="' + projectName + '"\n' + 'activeURL="' + baseURL + '"')
-					file.close()
-					print('Active project set to: ' + projectName)
+				# Append an active project to the config file
+				# Save custom path in a static .txt file
+				self.updateConfigFile(configFile, repoPath, repoName, projectName, projectURL)
 		else :
 			print('\033[91m Project already exists. \033[0m')
 
@@ -114,31 +122,13 @@ class CB_Api :
 		file.write(data)
 		file.close()
 
-	def setActiveProject(self, path, projectName, projectURL) :
-		userSettings = self.getUserSettings()
-		
-		with open(path, 'r') as file :
-			fileData = file.read()
-
-		# Update active project
-		newdata = fileData.replace(userSettings['activeProject'], '"' + projectName + '"')
-
-		with open(path, 'w') as file :
-			file.write(newdata)
-
-		# Update active project url
-		with open(path, 'r') as file :
-			fileData = file.read()
-
-		# Replace
-		newdata = fileData.replace(userSettings['activeURL'], '"' + projectURL + '"')
-
-		with open(path, 'w') as file :
-			file.write(newdata)
+	def setActiveProject(self, configFile, repoPath, repoName, projectName, projectURL) :
+		self.updateConfigFile(configFile, repoPath, repoName, projectName, projectURL)
+		print('Actie project set to ' + self.termc.OKBLUE + projectName + '.' + self.termc.ENDC)
 
 	def getActiveProject() :
 		userSettings = self.getUserSettings()
-		return userSettings['activeProject']
+		return userSettings['activeProject'].replace('"', '')
 
 	def greet() :
 		print('Welcome to crawlbox!')
@@ -163,8 +153,9 @@ class CB_Api :
 		return results
 
 	# Iterate through a set, and convert it to a line in a file
-	def setToFile(self, links, fileName) :
-		self.deleteFileContents(fileName)
+	def setToFile(self, wType, links, fileName) :
+		if wType == 'clean' :
+			self.deleteFileContents(fileName)
 
 		for link in sorted(links) :
 			self.appendToFile(fileName, link)
@@ -199,18 +190,18 @@ class CB_Api :
 
 		# Reset to initial state
 		self.appendToFile(projectPath + '/queue.txt', projectURL)
-		print('Flushing ' + projectName + ', at: ' + projectPath)
+		print('Flushed ' + projectName + ', at: ' + projectPath)
 
 	def removeProject(self, repoPath, repoName, projectName) :
 		userSettings = self.getUserSettings()
 		path = repoPath + repoName + '/' + projectName
 
 		# Check if it is the active project, recreate the config file
-		if userSettings['activeProject'] == projectName :
+		if userSettings['activeProject'].replace('"', '') == projectName :
 			print('Removing the active project. Update config file')
 			# Save custom path in a static .txt file
 			file = open('/var/www/crawlbox/.cboxrc', 'w')
-			file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'numThreads=' + userSettings['numThreads'] + '\n' + 'activeProject=none' + '\n' + 'activeURL=none')
+			file.write('repoPath=' + repoPath + '\n' + 'repoName=' + repoName + '\n' + 'numThreads=' + userSettings['numThreads'] + '\n' + 'activeProject="none"' + '\n' + 'activeURL="none"')
 			file.close()
 
 		if os.path.exists(path) :
@@ -223,11 +214,11 @@ class CB_Api :
 
 		if os.path.exists(path) :
 			shutil.rmtree(path)
-			print(repoName + ' permanently removed.')
+			print('Repository "' + repoName + '" permanently removed.')
 
 		# Remove config file
 		self.deleteFileContents(configFile)
-		print('Removed repo config')
+		print('Removed repo config file')
 	def regenConfigFile(self) :
 		print('Regen config')
 
