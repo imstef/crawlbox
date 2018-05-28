@@ -32,7 +32,7 @@ else :
 	# Get user session vars
 	userSettings = api.getUserSettings()
 
-	if 'numThreads' in userSettings and userSettings['numThreads'] != 'none' :
+	if 'numThreads' in userSettings and userSettings['numThreads'] == 0 :
 		NUMBER_OF_THREADS = int(userSettings['numThreads'])
 	else :
 		NUMBER_OF_THREADS = 2
@@ -61,7 +61,7 @@ else :
 	#print (termc.HEADER + 'some text' + termc.ENDC)
 	#print(str(len(api.fileToSet(REPO_PATH + REPO_NAME + '/' + 'healthfella/crawled.txt'))))
 	print(termc.WARNING + 'Crawlbox 0.1' + termc.ENDC)
-
+	#print(NUMBER_OF_THREADS)
 # Basic top level param logic
 if len(sys.argv[1:]) > 0 :
 	args = sys.argv[1:]

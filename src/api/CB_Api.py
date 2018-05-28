@@ -112,7 +112,8 @@ class CB_Api :
 				userSettings = self.getUserSettings()
 				# Append an active project to the config file
 				# Save custom path in a static .txt file
-				self.updateConfigFile(configFile, repoPath, repoName, projectName, projectURL)
+				self.updateConfigFile(configFile, repoPath, repoName, projectName, baseURL)
+				print('Actie project set to ' + self.termc.OKBLUE + projectName + '.' + self.termc.ENDC)
 		else :
 			print('\033[91m Project already exists. \033[0m')
 
